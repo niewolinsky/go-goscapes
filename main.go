@@ -57,7 +57,7 @@ func main() {
 		defer players[i].Close()
 	}
 
-	p := tea.NewProgram(newModel(defaultTime, players))
+	p := tea.NewProgram(newModel(players))
 	_, err = p.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -91,7 +91,7 @@ type mainModel struct {
 	players []oto.Player
 }
 
-func newModel(timeout time.Duration, players []oto.Player) mainModel {
+func newModel(players []oto.Player) mainModel {
 	m := mainModel{state: soundscape_01}
 	m.players = players
 	return m
