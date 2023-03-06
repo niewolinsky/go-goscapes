@@ -1,7 +1,9 @@
 # GoScapes - Ambient sounds from terminal
 TUI application allowing you to play relaxing, ambient sounds. Created while learning [Bubbletea](https://github.com/charmbracelet/bubbletea) framework. I am now certified front-end terminal developer 😎. The code needs a lot of improvement but the application works.
 
-![GoScapes In Action](https://i.imgur.com/WGMEbmr.mp4)
+![GoScapes Screenshot](https://i.imgur.com/N0Q0XvO.png)
+
+[GIF Version](https://i.imgur.com/WGMEbmr.mp4)
 
 ## Features:
 - Play up to 9 different soundscapes using user interface in the terminal.
