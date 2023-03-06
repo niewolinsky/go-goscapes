@@ -62,7 +62,7 @@ func main() {
 const (
 	defaultTime                = time.Minute
 	soundscape_01 sessionState = iota
-	sounsdcape_02
+	soundscape_02
 )
 
 var (
@@ -110,7 +110,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			if m.state == soundscape_01 {
-				m.state = sounsdcape_02
+				m.state = soundscape_02
 			} else {
 				m.state = soundscape_01
 			}
@@ -139,7 +139,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch m.state {
 		// update whichever model is focused
-		case sounsdcape_02:
+		case soundscape_02:
 			m.timer2, cmd = m.timer2.Update(msg)
 			cmds = append(cmds, cmd)
 		default:
@@ -161,7 +161,7 @@ func (m mainModel) View() string {
 	model := m.currentFocusedModel()
 	if m.state == soundscape_01 {
 		s += lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render(fmt.Sprintf("%4s", m.timer.View())), modelStyle.Render(m.timer2.View()))
-	} else {
+	} else if m.state == soundscape_02 {
 		s += lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render(fmt.Sprintf("%4s", m.timer.View())), focusedModelStyle.Render(m.timer2.View()))
 	}
 	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: new %s • q: exit\n", model))
@@ -171,7 +171,9 @@ func (m mainModel) View() string {
 func (m mainModel) currentFocusedModel() string {
 	if m.state == soundscape_01 {
 		return "timer"
+	} else if m.state == soundscape_02 {
+		return "timer2"
 	}
 
-	return "timer2"
+	return ""
 }
