@@ -24,38 +24,45 @@ func main() {
 	}
 	<-readyChan
 
-	file, err := os.Open("./01_rain.mp3")
+	mp3_01, err := os.Open("./01_rain.mp3")
 	if err != nil {
 		panic("opening my-file.mp3 failed: " + err.Error())
 	}
+	defer mp3_01.Close()
 
-	decodedMp3, err := mp3.NewDecoder(file)
+	mp3_02, err := os.Open("./02_bells.mp3")
+	if err != nil {
+		panic("opening my-file.mp3 failed: " + err.Error())
+	}
+	defer mp3_02.Close()
+
+	mp3_01_dec, err := mp3.NewDecoder(mp3_01)
+	if err != nil {
+		panic("mp3.NewDecoder failed: " + err.Error())
+	}
+	mp3_02_dec, err := mp3.NewDecoder(mp3_02)
 	if err != nil {
 		panic("mp3.NewDecoder failed: " + err.Error())
 	}
 
-	player := otoCtx.NewPlayer(decodedMp3)
-	player.Play()
+	play_01 := otoCtx.NewPlayer(mp3_01_dec)
+	defer play_01.Close()
+	play_02 := otoCtx.NewPlayer(mp3_02_dec)
+	defer play_02.Close()
 
-	p := tea.NewProgram(newModel(defaultTime))
+	players := []oto.Player{play_01, play_02}
 
+	p := tea.NewProgram(newModel(defaultTime, players))
 	_, err = p.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err = player.Close()
-	if err != nil {
-		panic("player.Close failed: " + err.Error())
-	}
-	file.Close()
-	fmt.Println("koniec programu")
 }
 
 const (
-	defaultTime              = time.Minute
-	timerView   sessionState = iota
-	timerView2
+	defaultTime                = time.Minute
+	soundscape_01 sessionState = iota
+	sounsdcape_02
 )
 
 var (
@@ -74,15 +81,17 @@ var (
 )
 
 type mainModel struct {
-	state  sessionState
-	timer  timer.Model
-	timer2 timer.Model
+	state   sessionState
+	timer   timer.Model
+	timer2  timer.Model
+	players []oto.Player
 }
 
-func newModel(timeout time.Duration) mainModel {
-	m := mainModel{state: timerView}
+func newModel(timeout time.Duration, players []oto.Player) mainModel {
+	m := mainModel{state: soundscape_01}
 	m.timer = timer.New(timeout)
 	m.timer2 = timer.New(timeout)
+	m.players = players
 	return m
 }
 
@@ -100,23 +109,37 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "tab":
-			if m.state == timerView {
-				m.state = timerView2
+			if m.state == soundscape_01 {
+				m.state = sounsdcape_02
 			} else {
-				m.state = timerView
+				m.state = soundscape_01
 			}
 		case "n":
-			if m.state == timerView {
+			if m.state == soundscape_01 {
 				m.timer = timer.New(defaultTime)
+
+				if m.players[0].IsPlaying() {
+					m.players[0].Pause()
+				} else {
+					m.players[0].Play()
+				}
+
 				cmds = append(cmds, m.timer.Init())
 			} else {
 				m.timer2 = timer.New(defaultTime)
+
+				if m.players[1].IsPlaying() {
+					m.players[1].Pause()
+				} else {
+					m.players[1].Play()
+				}
+
 				cmds = append(cmds, m.timer2.Init())
 			}
 		}
 		switch m.state {
 		// update whichever model is focused
-		case timerView2:
+		case sounsdcape_02:
 			m.timer2, cmd = m.timer2.Update(msg)
 			cmds = append(cmds, cmd)
 		default:
@@ -136,7 +159,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m mainModel) View() string {
 	var s string
 	model := m.currentFocusedModel()
-	if m.state == timerView {
+	if m.state == soundscape_01 {
 		s += lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render(fmt.Sprintf("%4s", m.timer.View())), modelStyle.Render(m.timer2.View()))
 	} else {
 		s += lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render(fmt.Sprintf("%4s", m.timer.View())), focusedModelStyle.Render(m.timer2.View()))
@@ -146,8 +169,9 @@ func (m mainModel) View() string {
 }
 
 func (m mainModel) currentFocusedModel() string {
-	if m.state == timerView {
+	if m.state == soundscape_01 {
 		return "timer"
 	}
+
 	return "timer2"
 }
