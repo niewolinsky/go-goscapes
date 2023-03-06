@@ -68,6 +68,12 @@ const (
 	soundscape_01 sessionState = iota
 	soundscape_02
 	soundscape_03
+	soundscape_04
+	soundscape_05
+	soundscape_06
+	soundscape_07
+	soundscape_08
+	soundscape_09
 )
 
 var (
@@ -121,6 +127,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.players[m.state].(io.Seeker).Seek(0, io.SeekStart)
 			} else {
 				m.players[m.state].Play()
+				return m, keepAlive(m.players[0])
 			}
 		case "i":
 			if m.players[m.state].Volume() > 0.1 {
@@ -128,14 +135,12 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.players[m.state].SetVolume(m.players[m.state].Volume() - 0.1)
 				fmt.Println(m.players[m.state].Volume())
 			}
-
 		case "k":
 			if m.players[m.state].Volume() < 1.0 {
 				fmt.Println(m.players[m.state].Volume())
 				m.players[m.state].SetVolume(m.players[m.state].Volume() + 0.1)
 				fmt.Println(m.players[m.state].Volume())
 			}
-
 		case "p":
 			return m, keepAlive(m.players[0])
 		}
@@ -151,11 +156,13 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m mainModel) View() string {
 	var s string
 	model := m.currentFocusedModel()
-	if m.state == soundscape_01 {
+
+	switch m.state {
+	case soundscape_01:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
-	} else if m.state == soundscape_02 {
+	case soundscape_02:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
-	} else if m.state == soundscape_03 {
+	case soundscape_03:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
 	}
 
@@ -164,12 +171,26 @@ func (m mainModel) View() string {
 }
 
 func (m mainModel) currentFocusedModel() string {
-	if m.state == soundscape_01 {
-		return "soundscape_01"
-	} else if m.state == soundscape_02 {
-		return "soundscape_02"
-	} else if m.state == soundscape_03 {
-		return "soundscape_03"
+	//?smarter way to do that?
+	switch m.state {
+	case soundscape_01:
+		return "rain"
+	case soundscape_02:
+		return "thunder"
+	case soundscape_03:
+		return "rain"
+	case soundscape_04:
+		return "thunder"
+	case soundscape_05:
+		return "rain"
+	case soundscape_06:
+		return "thunder"
+	case soundscape_07:
+		return "thunder"
+	case soundscape_08:
+		return "rain"
+	case soundscape_09:
+		return "thunder"
 	}
 
 	return ""
