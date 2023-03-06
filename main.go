@@ -57,7 +57,7 @@ func main() {
 		defer players[i].Close()
 	}
 
-	p := tea.NewProgram(newModel(players))
+	p := tea.NewProgram(newModel(players), tea.WithAltScreen())
 	_, err = p.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -65,9 +65,9 @@ func main() {
 }
 
 const (
-	defaultTime                = time.Minute
 	soundscape_01 sessionState = iota
 	soundscape_02
+	soundscape_03
 )
 
 var (
@@ -108,38 +108,32 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "tab":
-			if m.state == 1 {
+			if m.state == 0 {
 				m.state = soundscape_02
+			} else if m.state == 1 {
+				m.state = soundscape_03
 			} else {
 				m.state = soundscape_01
 			}
 		case "enter":
-			if m.players[m.state-1].IsPlaying() {
-				m.players[m.state-1].Pause()
-				m.players[m.state-1].(io.Seeker).Seek(0, io.SeekStart)
+			if m.players[m.state].IsPlaying() {
+				m.players[m.state].Pause()
+				m.players[m.state].(io.Seeker).Seek(0, io.SeekStart)
 			} else {
-				m.players[m.state-1].Play()
+				m.players[m.state].Play()
 			}
 		case "i":
-			if m.state == soundscape_01 {
-				if m.players[0].Volume() > 0.1 {
-					m.players[0].SetVolume(m.players[0].Volume() - 0.1)
-				}
-			} else if m.state == soundscape_02 {
-				if m.players[1].Volume() > 0.1 {
-					m.players[1].SetVolume(m.players[1].Volume() - 0.1)
-				}
+			if m.players[m.state].Volume() > 0.1 {
+				fmt.Println(m.players[m.state].Volume())
+				m.players[m.state].SetVolume(m.players[m.state].Volume() - 0.1)
+				fmt.Println(m.players[m.state].Volume())
 			}
 
 		case "k":
-			if m.state == soundscape_01 {
-				if m.players[0].Volume() < 1.0 {
-					m.players[0].SetVolume(m.players[0].Volume() + 0.1)
-				}
-			} else if m.state == soundscape_02 {
-				if m.players[1].Volume() < 1.0 {
-					m.players[1].SetVolume(m.players[1].Volume() + 0.1)
-				}
+			if m.players[m.state].Volume() < 1.0 {
+				fmt.Println(m.players[m.state].Volume())
+				m.players[m.state].SetVolume(m.players[m.state].Volume() + 0.1)
+				fmt.Println(m.players[m.state].Volume())
 			}
 
 		case "p":
@@ -158,10 +152,13 @@ func (m mainModel) View() string {
 	var s string
 	model := m.currentFocusedModel()
 	if m.state == soundscape_01 {
-		s += lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("rain"), modelStyle.Render("bells"))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
 	} else if m.state == soundscape_02 {
-		s += lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("rain"), focusedModelStyle.Render("bells"))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	} else if m.state == soundscape_03 {
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
 	}
+
 	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play %s • q: exit\n", model))
 	return s
 }
@@ -171,6 +168,8 @@ func (m mainModel) currentFocusedModel() string {
 		return "soundscape_01"
 	} else if m.state == soundscape_02 {
 		return "soundscape_02"
+	} else if m.state == soundscape_03 {
+		return "soundscape_03"
 	}
 
 	return ""
