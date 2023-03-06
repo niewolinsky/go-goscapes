@@ -17,6 +17,8 @@ import (
 // sessionState is used to track which model is focused
 type sessionState uint
 
+type statusMsg uint
+
 func main() {
 	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
 	if err != nil {
@@ -70,7 +72,8 @@ var (
 			Width(15).
 			Height(5).
 			Align(lipgloss.Center, lipgloss.Center).
-			BorderStyle(lipgloss.HiddenBorder())
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("241"))
 	focusedModelStyle = lipgloss.NewStyle().
 				Width(15).
 				Height(5).
@@ -92,7 +95,6 @@ func newModel(timeout time.Duration, players []oto.Player) mainModel {
 }
 
 func (m mainModel) Init() tea.Cmd {
-	// start the timer and spinner on program start
 	return nil
 }
 
@@ -103,7 +105,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "tab":
-			if m.state == soundscape_01 {
+			if m.state == 1 {
 				m.state = soundscape_02
 			} else {
 				m.state = soundscape_01
@@ -145,7 +147,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.players[1].SetVolume(m.players[1].Volume() + 0.1)
 				}
 			}
+
+		case "p":
+			return m, keepAlive(m.players[0])
 		}
+	case statusMsg:
+		fmt.Println("wykonuje sie")
+		m.players[0].(io.Seeker).Seek(0, io.SeekStart)
+		m.players[0].Play()
+		return m, keepAlive(m.players[0])
 	}
 	return m, nil
 }
@@ -170,4 +180,14 @@ func (m mainModel) currentFocusedModel() string {
 	}
 
 	return ""
+}
+
+func keepAlive(player oto.Player) tea.Cmd {
+	return func() tea.Msg {
+		for player.IsPlaying() {
+			time.Sleep(time.Millisecond)
+		}
+
+		return statusMsg(0)
+	}
 }
