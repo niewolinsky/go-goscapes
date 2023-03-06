@@ -20,6 +20,8 @@ type sessionState uint
 
 type statusMsg uint
 
+const version = "0.1.0"
+
 //go:embed "soundscapes"
 var Files embed.FS
 
@@ -157,13 +159,13 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, keepAlive(m.players[int(m.state)].player)
 			}
-		case "i":
+		case "down":
 			if m.players[int(m.state)].player.Volume() > 0.1 {
 				fmt.Println(m.players[int(m.state)].player.Volume())
 				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() - 0.1)
 				fmt.Println(m.players[int(m.state)].player.Volume())
 			}
-		case "k":
+		case "up":
 			if m.players[int(m.state)].player.Volume() < 1.0 {
 				fmt.Println(m.players[int(m.state)].player.Volume())
 				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() + 0.1)
@@ -171,6 +173,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "p":
 			return m, keepAlive(m.players[0].player)
+
+		default:
+			fmt.Println(msg.String())
 		}
 	case statusMsg:
 		if !m.players[int(m.state)].isActive {
@@ -188,27 +193,28 @@ func (m mainModel) View() string {
 	model := m.currentFocusedModel()
 
 	switch m.state {
+	//?smarter way to do that?
 	case soundscape_01:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_02:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), focusedModelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_03:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), focusedModelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_04:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_05:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), focusedModelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_06:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), focusedModelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_07:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_08:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), focusedModelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_09:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), focusedModelStyle.Render("WHITE NOISE")))
 	}
 
-	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play %s • q: exit\n", model))
+	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play/stop %s • ↑/↓: change volume • q: exit\n", model))
 	return s
 }
 
