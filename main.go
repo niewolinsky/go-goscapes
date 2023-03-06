@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"embed"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,6 +20,9 @@ type sessionState uint
 
 type statusMsg uint
 
+//go:embed "soundscapes"
+var Files embed.FS
+
 func main() {
 	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
 	if err != nil {
@@ -26,35 +30,34 @@ func main() {
 	}
 	<-readyChan
 
-	mp3_01, err := os.Open("./01_rain.mp3")
+	players := []oto.Player{}
+
+	soundscapes, err := Files.ReadDir("soundscapes")
 	if err != nil {
-		panic("opening my-file.mp3 failed: " + err.Error())
+		log.Fatal(err)
 	}
-	defer mp3_01.Close()
+	for _, soundscape := range soundscapes {
+		fileBytes, err := Files.ReadFile(fmt.Sprintf("soundscapes/%s", soundscape.Name()))
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	mp3_02, err := os.Open("./02_bells.mp3")
-	if err != nil {
-		panic("opening my-file.mp3 failed: " + err.Error())
+		fileBytesReader := bytes.NewReader(fileBytes)
+
+		decodedMp3, err := mp3.NewDecoder(fileBytesReader)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		player := otoCtx.NewPlayer(decodedMp3)
+		players = append(players, player)
 	}
-	defer mp3_02.Close()
 
-	mp3_01_dec, err := mp3.NewDecoder(mp3_01)
-	if err != nil {
-		panic("mp3.NewDecoder failed: " + err.Error())
-	}
-	mp3_02_dec, err := mp3.NewDecoder(mp3_02)
-	if err != nil {
-		panic("mp3.NewDecoder failed: " + err.Error())
+	for i := range players {
+		defer players[i].Close()
 	}
 
-	play_01 := otoCtx.NewPlayer(mp3_01_dec)
-	defer play_01.Close()
-	play_02 := otoCtx.NewPlayer(mp3_02_dec)
-	defer play_02.Close()
-
-	players := []oto.Player{play_01, play_02}
-
-	p := tea.NewProgram(newModel(defaultTime, players))
+	p := tea.NewProgram(newModel(players))
 	_, err = p.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -62,7 +65,6 @@ func main() {
 }
 
 const (
-	defaultTime                = time.Minute
 	soundscape_01 sessionState = iota
 	soundscape_02
 )
@@ -88,7 +90,7 @@ type mainModel struct {
 	players []oto.Player
 }
 
-func newModel(timeout time.Duration, players []oto.Player) mainModel {
+func newModel(players []oto.Player) mainModel {
 	m := mainModel{state: soundscape_01}
 	m.players = players
 	return m
