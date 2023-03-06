@@ -2,7 +2,12 @@ module github.com/niewolinski/go-goscapes
 
 go 1.20
 
-require github.com/charmbracelet/bubbletea v0.23.2
+require (
+	github.com/charmbracelet/bubbletea v0.23.2
+	github.com/hajimehoshi/go-mp3 v0.3.4
+)
+
+require github.com/hajimehoshi/oto/v2 v2.3.1
 
 require (
 	github.com/aymanbagabas/go-osc52 v1.2.1 // indirect

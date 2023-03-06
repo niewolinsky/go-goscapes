@@ -3,23 +3,53 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/hajimehoshi/go-mp3"
+	"github.com/hajimehoshi/oto/v2"
 )
 
 // sessionState is used to track which model is focused
 type sessionState uint
 
 func main() {
-	p := tea.NewProgram(newModel(defaultTime))
-
-	_, err := p.Run()
+	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
 	if err != nil {
 		log.Fatal(err)
 	}
+	<-readyChan
+
+	file, err := os.Open("./01_rain.mp3")
+	if err != nil {
+		panic("opening my-file.mp3 failed: " + err.Error())
+	}
+
+	decodedMp3, err := mp3.NewDecoder(file)
+	if err != nil {
+		panic("mp3.NewDecoder failed: " + err.Error())
+	}
+
+	player := otoCtx.NewPlayer(decodedMp3)
+	player.Play()
+
+	p := tea.NewProgram(newModel(defaultTime))
+
+	_, err = p.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = player.Close()
+	if err != nil {
+		panic("player.Close failed: " + err.Error())
+	}
+	file.Close()
+	fmt.Println("koniec programu")
 }
 
 const (
