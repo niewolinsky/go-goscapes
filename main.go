@@ -57,7 +57,7 @@ func main() {
 		defer players[i].Close()
 	}
 
-	p := tea.NewProgram(newModel(players))
+	p := tea.NewProgram(newModel(defaultTime, players))
 	_, err = p.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -65,6 +65,7 @@ func main() {
 }
 
 const (
+	defaultTime                = time.Minute
 	soundscape_01 sessionState = iota
 	soundscape_02
 )
@@ -90,7 +91,7 @@ type mainModel struct {
 	players []oto.Player
 }
 
-func newModel(players []oto.Player) mainModel {
+func newModel(timeout time.Duration, players []oto.Player) mainModel {
 	m := mainModel{state: soundscape_01}
 	m.players = players
 	return m
@@ -113,20 +114,11 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = soundscape_01
 			}
 		case "enter":
-			if m.state == soundscape_01 {
-				if m.players[0].IsPlaying() {
-					m.players[0].Pause()
-					m.players[0].(io.Seeker).Seek(0, io.SeekStart)
-				} else {
-					m.players[0].Play()
-				}
-			} else if m.state == soundscape_02 {
-				if m.players[1].IsPlaying() {
-					m.players[1].Pause()
-					m.players[1].(io.Seeker).Seek(0, io.SeekStart)
-				} else {
-					m.players[1].Play()
-				}
+			if m.players[m.state-1].IsPlaying() {
+				m.players[m.state-1].Pause()
+				m.players[m.state-1].(io.Seeker).Seek(0, io.SeekStart)
+			} else {
+				m.players[m.state-1].Play()
 			}
 		case "i":
 			if m.state == soundscape_01 {
