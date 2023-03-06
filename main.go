@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -107,19 +108,41 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.state = soundscape_01
 			}
-		case "n":
+		case "enter":
 			if m.state == soundscape_01 {
 				if m.players[0].IsPlaying() {
 					m.players[0].Pause()
+					m.players[0].(io.Seeker).Seek(0, io.SeekStart)
 				} else {
 					m.players[0].Play()
 				}
-			} else {
-
+			} else if m.state == soundscape_02 {
 				if m.players[1].IsPlaying() {
 					m.players[1].Pause()
+					m.players[1].(io.Seeker).Seek(0, io.SeekStart)
 				} else {
 					m.players[1].Play()
+				}
+			}
+		case "i":
+			if m.state == soundscape_01 {
+				if m.players[0].Volume() > 0.1 {
+					m.players[0].SetVolume(m.players[0].Volume() - 0.1)
+				}
+			} else if m.state == soundscape_02 {
+				if m.players[1].Volume() > 0.1 {
+					m.players[1].SetVolume(m.players[1].Volume() - 0.1)
+				}
+			}
+
+		case "k":
+			if m.state == soundscape_01 {
+				if m.players[0].Volume() < 1.0 {
+					m.players[0].SetVolume(m.players[0].Volume() + 0.1)
+				}
+			} else if m.state == soundscape_02 {
+				if m.players[1].Volume() < 1.0 {
+					m.players[1].SetVolume(m.players[1].Volume() + 0.1)
 				}
 			}
 		}
@@ -135,7 +158,7 @@ func (m mainModel) View() string {
 	} else if m.state == soundscape_02 {
 		s += lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("rain"), focusedModelStyle.Render("bells"))
 	}
-	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: new %s • q: exit\n", model))
+	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play %s • q: exit\n", model))
 	return s
 }
 
