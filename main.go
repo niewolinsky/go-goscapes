@@ -23,6 +23,11 @@ type statusMsg uint
 //go:embed "soundscapes"
 var Files embed.FS
 
+type customPlayer struct {
+	player   oto.Player
+	isActive bool
+}
+
 func main() {
 	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
 	if err != nil {
@@ -30,13 +35,13 @@ func main() {
 	}
 	<-readyChan
 
-	players := []oto.Player{}
+	players := map[int]customPlayer{}
 
 	soundscapes, err := Files.ReadDir("soundscapes")
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, soundscape := range soundscapes {
+	for i, soundscape := range soundscapes {
 		fileBytes, err := Files.ReadFile(fmt.Sprintf("soundscapes/%s", soundscape.Name()))
 		if err != nil {
 			log.Fatal(err)
@@ -49,12 +54,12 @@ func main() {
 			log.Fatal(err)
 		}
 
-		player := otoCtx.NewPlayer(decodedMp3)
-		players = append(players, player)
+		player := customPlayer{otoCtx.NewPlayer(decodedMp3), false}
+		players[i] = player
 	}
 
 	for i := range players {
-		defer players[i].Close()
+		defer players[i].player.Close()
 	}
 
 	p := tea.NewProgram(newModel(players), tea.WithAltScreen())
@@ -94,10 +99,10 @@ var (
 
 type mainModel struct {
 	state   sessionState
-	players []oto.Player
+	players map[int]customPlayer
 }
 
-func newModel(players []oto.Player) mainModel {
+func newModel(players map[int]customPlayer) mainModel {
 	m := mainModel{state: soundscape_01}
 	m.players = players
 	return m
@@ -118,37 +123,62 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = soundscape_02
 			} else if m.state == 1 {
 				m.state = soundscape_03
-			} else {
+			} else if m.state == 2 {
+				m.state = soundscape_04
+			} else if m.state == 3 {
+				m.state = soundscape_05
+			} else if m.state == 4 {
+				m.state = soundscape_06
+			} else if m.state == 5 {
+				m.state = soundscape_07
+			} else if m.state == 6 {
+				m.state = soundscape_08
+			} else if m.state == 7 {
+				m.state = soundscape_09
+			} else if m.state == 8 {
 				m.state = soundscape_01
 			}
 		case "enter":
-			if m.players[m.state].IsPlaying() {
-				m.players[m.state].Pause()
-				m.players[m.state].(io.Seeker).Seek(0, io.SeekStart)
+			if m.players[int(m.state)].player.IsPlaying() {
+				m.players[int(m.state)].player.Pause()
+				m.players[int(m.state)].player.(io.Seeker).Seek(0, io.SeekStart)
+
+				if entry, ok := m.players[int(m.state)]; ok {
+					entry.isActive = false
+					m.players[int(m.state)] = entry
+				}
 			} else {
-				m.players[m.state].Play()
-				return m, keepAlive(m.players[0])
+				m.players[int(m.state)].player.Play()
+
+				if entry, ok := m.players[int(m.state)]; ok {
+					entry.isActive = true
+					m.players[int(m.state)] = entry
+				}
+
+				return m, keepAlive(m.players[int(m.state)].player)
 			}
 		case "i":
-			if m.players[m.state].Volume() > 0.1 {
-				fmt.Println(m.players[m.state].Volume())
-				m.players[m.state].SetVolume(m.players[m.state].Volume() - 0.1)
-				fmt.Println(m.players[m.state].Volume())
+			if m.players[int(m.state)].player.Volume() > 0.1 {
+				fmt.Println(m.players[int(m.state)].player.Volume())
+				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() - 0.1)
+				fmt.Println(m.players[int(m.state)].player.Volume())
 			}
 		case "k":
-			if m.players[m.state].Volume() < 1.0 {
-				fmt.Println(m.players[m.state].Volume())
-				m.players[m.state].SetVolume(m.players[m.state].Volume() + 0.1)
-				fmt.Println(m.players[m.state].Volume())
+			if m.players[int(m.state)].player.Volume() < 1.0 {
+				fmt.Println(m.players[int(m.state)].player.Volume())
+				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() + 0.1)
+				fmt.Println(m.players[int(m.state)].player.Volume())
 			}
 		case "p":
-			return m, keepAlive(m.players[0])
+			return m, keepAlive(m.players[0].player)
 		}
 	case statusMsg:
-		fmt.Println("wykonuje sie")
-		m.players[0].(io.Seeker).Seek(0, io.SeekStart)
-		m.players[0].Play()
-		return m, keepAlive(m.players[0])
+		if !m.players[int(m.state)].isActive {
+			return m, nil
+		}
+		m.players[int(m.state)].player.(io.Seeker).Seek(0, io.SeekStart)
+		m.players[int(m.state)].player.Play()
+		return m, keepAlive(m.players[int(m.state)].player)
 	}
 	return m, nil
 }
@@ -159,11 +189,23 @@ func (m mainModel) View() string {
 
 	switch m.state {
 	case soundscape_01:
-		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), modelStyle.Render("WHITE NOISE")))
 	case soundscape_02:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
 	case soundscape_03:
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_04:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_05:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_06:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_07:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_08:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), focusedModelStyle.Render("🔔"), modelStyle.Render("🐦")))
+	case soundscape_09:
+		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), modelStyle.Render("🐦")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("🌧️"), modelStyle.Render("🔔"), focusedModelStyle.Render("🐦")))
 	}
 
 	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play %s • q: exit\n", model))
@@ -178,19 +220,19 @@ func (m mainModel) currentFocusedModel() string {
 	case soundscape_02:
 		return "thunder"
 	case soundscape_03:
-		return "rain"
+		return "waves"
 	case soundscape_04:
-		return "thunder"
+		return "wind"
 	case soundscape_05:
-		return "rain"
+		return "fire"
 	case soundscape_06:
-		return "thunder"
+		return "birds"
 	case soundscape_07:
-		return "thunder"
+		return "crickets"
 	case soundscape_08:
-		return "rain"
+		return "bowls"
 	case soundscape_09:
-		return "thunder"
+		return "noise"
 	}
 
 	return ""
