@@ -20,7 +20,7 @@ type sessionState uint
 
 type statusMsg uint
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 //go:embed "soundscapes"
 var Files embed.FS
@@ -161,21 +161,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "down":
 			if m.players[int(m.state)].player.Volume() > 0.1 {
-				fmt.Println(m.players[int(m.state)].player.Volume())
 				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() - 0.1)
-				fmt.Println(m.players[int(m.state)].player.Volume())
 			}
 		case "up":
 			if m.players[int(m.state)].player.Volume() < 1.0 {
-				fmt.Println(m.players[int(m.state)].player.Volume())
 				m.players[int(m.state)].player.SetVolume(m.players[int(m.state)].player.Volume() + 0.1)
-				fmt.Println(m.players[int(m.state)].player.Volume())
 			}
 		case "p":
 			return m, keepAlive(m.players[0].player)
-
-		default:
-			fmt.Println(msg.String())
 		}
 	case statusMsg:
 		if !m.players[int(m.state)].isActive {
@@ -214,7 +207,7 @@ func (m mainModel) View() string {
 		s += lipgloss.JoinVertical(lipgloss.Top, lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("RAIN"), modelStyle.Render("THUNDER"), modelStyle.Render("WAVES")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("WIND"), modelStyle.Render("FIRE"), modelStyle.Render("BIRDS")), lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render("CRICKETS"), modelStyle.Render("BOWLS"), focusedModelStyle.Render("WHITE NOISE")))
 	}
 
-	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • n: play/stop %s • ↑/↓: change volume • q: exit\n", model))
+	s += helpStyle.Render(fmt.Sprintf("\ntab: focus next • enter: play/stop %s • ↑/↓: change volume • q: exit\n", model))
 	return s
 }
 
